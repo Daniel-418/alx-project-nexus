@@ -1,0 +1,14 @@
+venv/
+.env/
+.venv/
+db.sqlite3
+media/
+staticfiles/
+.env
+.env.*
+!.env.example
+docker-compose.override.yml
+__pycache__/
+*.py[cod]
+*$py.class
+.log
