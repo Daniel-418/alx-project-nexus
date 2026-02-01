@@ -5,6 +5,10 @@ from accounts.models import User
 
 
 class UserFactory(factory.django.DjangoModelFactory):
+    """
+    A factory for creating dummy User objects
+    """
+
     class Meta:  # pyright: ignore
         model = User
 
@@ -17,6 +21,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     is_staff = False
     is_superuser = False
 
+    # Hash the password after generating the user
     @factory.post_generation
     def password(self, create, extracted, **kwargs):
         password = extracted

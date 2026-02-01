@@ -1,7 +1,11 @@
 # type: ignore
 from django.test import TestCase
 from accounts.models import User
-from accounts.serializers import CustomUserSerializerOutput, CustomUserSerializerInput
+from accounts.serializers import (
+    CustomUserSerializerOutput,
+    CustomUserSerializerInput,
+    LoginSerializer,
+)
 from accounts.tests.factories import UserFactory
 
 
@@ -43,3 +47,41 @@ class CustomUserSerializer(TestCase):
         serializer = CustomUserSerializerOutput(self.user)
 
         self.assertNotIn("password", serializer.data)
+
+
+class LoginSerializerTest(TestCase):
+    def setUp(self):
+        self.password = "password"
+        self.user = UserFactory(password=self.password)
+
+    def test_serializer_output(self):
+        data = {"email": self.user.email, "password": self.password}
+        serializer = LoginSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_missing_password(self):
+        data = {"email": self.user.email}
+        serializer = LoginSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+        self.assertIn("password", serializer.errors)
+        error = serializer.errors["password"][0]
+        self.assertEqual(error.code, "required")
+
+    def test_missing_email(self):
+        data = {"password": "daniel"}
+        serializer = LoginSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+        self.assertIn("email", serializer.errors)
+        error = serializer.errors["email"][0]
+        self.assertEqual(error.code, "required")
+
+    def test_invalid_email_or_password(self):
+        data = {"email": "randomemail@afa.com", "password": "randompassword"}
+        serializer = LoginSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+        self.assertIn("details", serializer.errors)
+
+        self.assertIn("invalid email or password", str(serializer.errors))
