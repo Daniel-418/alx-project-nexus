@@ -1,14 +1,14 @@
 # Base Image
 FROM python:3.12-slim
 
-# Set environmental variables
+# set environmental variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Set working directory
+# set working directory
 WORKDIR /app
 
-# Copy project dependencies
+# copy project dependencies
 COPY requirements.txt .
 
 # install system dependencies
