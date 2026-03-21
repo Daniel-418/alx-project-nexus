@@ -13,3 +13,7 @@ __pycache__/
 *$py.class
 .log
 *.jpg
+!ERD.jpg
+.pytest_cache/
+.coverage
+htmlcov/

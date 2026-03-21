@@ -30,6 +30,7 @@ class OptionValueFactory(factory.django.DjangoModelFactory):
 class VariantFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Variant
+        skip_postgeneration_save = True
 
     product = factory.SubFactory(ProductFactory)
     sku = factory.Faker(
@@ -49,19 +50,24 @@ class VariantFactory(factory.django.DjangoModelFactory):
         else:
             self.option_values.add(OptionValueFactory())
 
+    @factory.post_generation
+    def images(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for image in extracted:
+                self.images.add(image)
+        else:
+            self.images.add(ProductImageFactory(product=self.product))
+
 
 class ProductImageFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ProductImage
 
-    variant = None
     product = factory.SubFactory(ProductFactory)
     image = factory.django.ImageField(color="blue", height=100, width=100)
     alt_text = factory.Faker("sentence")
     is_feature = False
     display_order = None
-
-    class Params:
-        for_variant = factory.Trait(
-            product=None, variant=factory.SubFactory(VariantFactory)
-        )

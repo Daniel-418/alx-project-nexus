@@ -1,3 +1,4 @@
+# type: ignore
 import uuid
 import shutil
 import tempfile
@@ -94,19 +95,19 @@ class ProductImageTest(TestCase):
 
     def test_image_with_variant(self):
         """test that you can attach an image to a variant"""
-        variant = VariantFactory()
-        new_image = ProductImageFactory(variant=variant, for_variant=True)
-        self.assertEqual(new_image.variant, variant)
-        self.assertIn(new_image, variant.product_images.all())
+        new_image = ProductImageFactory()
+        variant = VariantFactory(images=[new_image])
+        self.assertIn(variant, new_image.variants.all())
+        self.assertIn(new_image, variant.images.all())
 
     def test_image_with_a_product_and_a_variant(self):
         """test that an image can be attached to both a product and a variant"""
-        variant = VariantFactory()
         product = ProductFactory()
-        new_image = ProductImageFactory(variant=variant, product=product)
+        new_image = ProductImageFactory(product=product)
+        variant = VariantFactory(images=[new_image])
 
-        self.assertEqual(new_image.variant, variant)
-        self.assertIn(new_image, variant.product_images.all())
+        self.assertIn(variant, new_image.variants.all())
+        self.assertIn(new_image, variant.images.all())
         self.assertEqual(new_image.product, product)
         self.assertIn(new_image, product.product_images.all())
 
@@ -134,30 +135,33 @@ class ProductImageTest(TestCase):
         self.assertTrue(ProductImage.all_objects.filter(id=image.id).exists())
         self.assertIsNotNone(fetched.deleted_at)
 
-    def test_image_variant_fk_is_nullified_when_variant_is_deleted(self):
+    def test_image_remains_when_variant_is_deleted(self):
         """
         test that an image remains when it's variant is hard deleted
         """
-        variant = VariantFactory()
-        image = ProductImageFactory(variant=variant, for_variant=True)
+        image = ProductImageFactory()
+        variant = VariantFactory(images=[image])
 
         Variant.all_objects.filter(id=variant.id).delete()
         variant = None
         image.refresh_from_db()
 
-        self.assertIsNone(ProductImage.objects.get(id=image.id).variant)
+        self.assertEqual(
+            0, ProductImage.objects.get(id=image.id).variants.all().count()
+        )
+        self.assertEqual(ProductImage.objects.get(id=image.id), image)
 
 
 class OptionTypeTest(TestCase):
     def test_option_type_creation(self):
         """test that an option type is successfully created"""
-        option_type = OptionTypeFactory(option_type="Color")
-        self.assertEqual(option_type.option_type, "Color")
+        option_type = OptionTypeFactory(option_type="  Color   ")
+        self.assertEqual(option_type.option_type, "COLOR")
 
     def test_option_type_str(self):
         """test that __str__ returns the option type name"""
         option_type = OptionTypeFactory(option_type="Color")
-        self.assertEqual(str(option_type), "Color")
+        self.assertEqual(str(option_type), "COLOR")
 
     def test_option_values_deleted_when_option_type_deleted(self):
         """test that OptionValues are CASCADE deleted when their OptionType is deleted —
@@ -169,6 +173,12 @@ class OptionTypeTest(TestCase):
         with self.assertRaises(OptionValue.DoesNotExist):
             OptionValue.objects.get(id=option_value_id)
 
+    def test_option_type_uniqueness(self):
+        OptionTypeFactory(option_type="color")
+
+        with self.assertRaises(IntegrityError):
+            OptionTypeFactory(option_type="  Color ")
+
 
 class OptionValueTest(TestCase):
     def test_option_value_creation(self):
@@ -177,13 +187,31 @@ class OptionValueTest(TestCase):
         option_value = OptionValueFactory(value="Red", option_type=option_type)
 
         self.assertEqual(option_value.option_type, option_type)
-        self.assertEqual(option_value.value, "Red")
+        self.assertEqual(option_value.value, "red")
 
     def test_option_value_str(self):
         """test that __str__ returns 'option_type: value' format"""
         option_type = OptionTypeFactory(option_type="Color")
         option_value = OptionValueFactory(value="Red", option_type=option_type)
-        self.assertEqual(str(option_value), "Color: Red")
+        self.assertEqual(str(option_value), "COLOR: red")
+
+    def test_option_value_combination_uniqueness(self):
+        """test that the combination of option_type and value is unique"""
+        option_type = OptionTypeFactory(option_type="Size")
+        OptionValueFactory(value="Large", option_type=option_type)
+
+        with self.assertRaises(IntegrityError):
+            OptionValueFactory(value=" LARGE ", option_type=option_type)
+
+    def test_same_value_allowed_on_different_types(self):
+        """test that the same value can exist on DIFFERENT option types"""
+        shirt_size = OptionTypeFactory(option_type="Shirt Size")
+        cup_size = OptionTypeFactory(option_type="Cup Size")
+
+        OptionValueFactory(value="Large", option_type=shirt_size)
+        OptionValueFactory(value="Large", option_type=cup_size)
+
+        self.assertEqual(OptionValue.objects.filter(value="large").count(), 2)
 
 
 class VariantTest(TestCase):
@@ -295,22 +323,24 @@ class ProductImageDisplayOrderTest(TestCase):
         self.assertEqual(img3.display_order, 3)
 
     def test_variant_images_get_sequential_display_order(self):
-        """variant-specific images for the same variant receive sequential display_order (1, 2)"""
-        variant = VariantFactory()
-        img1 = ProductImageFactory(for_variant=True, variant=variant)
-        img2 = ProductImageFactory(for_variant=True, variant=variant)
+        """images linked to a variant via M2M get sequential display_order within their product scope"""
+        product = ProductFactory()
+        img1 = ProductImageFactory(product=product)
+        img2 = ProductImageFactory(product=product)
+        VariantFactory(product=product, images=[img1, img2])
         self.assertEqual(img1.display_order, 1)
         self.assertEqual(img2.display_order, 2)
 
-    def test_variant_and_product_sequences_are_independent(self):
-        """variant images and product-level images maintain separate display_order counters"""
+    def test_variant_and_product_images_share_display_order_counter(self):
+        """variant-linked images and product-level images share the same display_order counter
+        since display_order is now scoped by product only, not by (product, variant)"""
         product = ProductFactory()
-        variant = VariantFactory(product=product)
-        variant_img = ProductImageFactory(product=product, variant=variant)
-        product_img = ProductImageFactory(product=product)
-        # each scope starts at 1 independently
-        self.assertEqual(variant_img.display_order, 1)
-        self.assertEqual(product_img.display_order, 1)
+        img1 = ProductImageFactory(product=product)
+        img2 = ProductImageFactory(product=product)
+        variant = VariantFactory(product=product, images=[img1])
+        self.assertEqual(img1.display_order, 1)
+        self.assertEqual(img2.display_order, 2)
+        self.assertIn(img1, variant.images.all())
 
     def test_duplicate_display_order_raises_for_two_active_images(self):
         """the partial unique constraint blocks two active product-level images sharing display_order"""
@@ -324,7 +354,6 @@ class ProductImageDisplayOrderTest(TestCase):
         product = ProductFactory()
         img1 = ProductImageFactory(product=product, display_order=1)
         img1.delete()
-        # should not raise — partial index ignores deleted rows
         img2 = ProductImageFactory(product=product, display_order=1)
         self.assertEqual(img2.display_order, 1)
 
@@ -387,25 +416,10 @@ class ProductImageRestoreTest(TestCase):
         except Exception as e:
             self.fail(f"restore() raised {e}")
 
-    def test_restore_variant_scoped_conflict_reassigns_display_order(self):
-        """same conflict resolution applies to variant-scoped images"""
-        variant = VariantFactory()
-        img1 = ProductImageFactory(for_variant=True, variant=variant)  # display_order=1
-        img1.delete()
-        img2 = ProductImageFactory(for_variant=True, variant=variant, display_order=1)
-        self.assertEqual(img2.display_order, 1)
-
-        img1.restore()
-        img1.refresh_from_db()
-
-        self.assertNotEqual(img1.display_order, 1)
-        self.assertEqual(img1.display_order, 2)
-        self.assertIsNone(img1.deleted_at)
-
     def test_restore_reassigned_order_is_end_of_sequence(self):
         """the reassigned display_order is appended after all active images"""
         product = ProductFactory()
-        img1 = ProductImageFactory(product=product)  # order=1 (only image)
+        img1 = ProductImageFactory(product=product)
         img1.delete()
 
         img2 = ProductImageFactory(product=product, display_order=1)
