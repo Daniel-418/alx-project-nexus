@@ -1,8 +1,7 @@
 # type: ignore
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import IntegrityError
 import pytest
-from products.models import Product, ProductImage
+from products.models import Product
 from products.tests.factories import (
     OptionValueFactory,
     ProductFactory,
@@ -12,11 +11,13 @@ from products.tests.factories import (
 from products.serializers import (
     OptionValueSerializer,
     ProductImageInputSerializer,
+    ProductImageOutputSerializer,
     ProductInputSerializer,
     ProductOutputSerializer,
     VariantInputSerializer,
     VariantOutputSerializer,
 )
+from products.tests.factories import ProductImageFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -72,6 +73,7 @@ class TestProductOutputSerializer:
                 product.deleted_at
             ),
             "variants": [],
+            "images": [],
         }
 
         assert serializer.data == expected_data
@@ -80,6 +82,9 @@ class TestProductOutputSerializer:
     def test_serializer_reutrns_correct_data_with_variant(self, product, variant):
         serializer = ProductOutputSerializer(instance=product)
         variant_serializer = VariantOutputSerializer(instance=variant)
+        image_serializer = ProductImageOutputSerializer(
+            instance=product.product_images.all(), many=True
+        )
         expected_data = {
             "id": str(product.id),
             "name": product.name,
@@ -92,6 +97,7 @@ class TestProductOutputSerializer:
                 product.deleted_at
             ),
             "variants": [variant_serializer.data],
+            "images": image_serializer.data,
         }
 
         assert serializer.data == expected_data
@@ -105,6 +111,29 @@ class TestProductOutputSerializer:
 
         assert len(serializer.data["variants"]) == 1
         assert serializer.data["variants"][0]["id"] == str(variant.id)
+
+    @pytest.mark.it("test that a product with images returns them inline")
+    def test_serializer_returns_images_inline(self, product):
+        image_1 = ProductImageFactory(product=product)
+        image_2 = ProductImageFactory(product=product)
+
+        serializer = ProductOutputSerializer(instance=product)
+        image_ids = [img["id"] for img in serializer.data["images"]]
+
+        assert len(serializer.data["images"]) == 2
+        assert str(image_1.id) in image_ids
+        assert str(image_2.id) in image_ids
+
+    @pytest.mark.it("test that soft-deleted images are excluded from inline output")
+    def test_deleted_image_is_excluded_from_output(self, product):
+        active_image = ProductImageFactory(product=product)
+        deleted_image = ProductImageFactory(product=product)
+        deleted_image.delete()
+
+        serializer = ProductOutputSerializer(instance=product)
+
+        assert len(serializer.data["images"]) == 1
+        assert serializer.data["images"][0]["id"] == str(active_image.id)
 
     @pytest.mark.it(
         "test that a product with multiple variants return all of the variants"
@@ -151,6 +180,7 @@ class TestVariantOutputSerializer:
         expected_data = {
             "id": str(variant.id),
             "option_values": option_values_data,
+            "images": [img.id for img in variant.images.all()],
             "sku": variant.sku,
             "stock": variant.stock,
             "is_master": variant.is_master,
@@ -170,7 +200,6 @@ class TestVariantInputSerializer:
     @pytest.mark.it("test the happy path that creates a variant")
     def test_variant_create_serializer(self, product):
         data = {
-            "product": str(product.id),
             "price": "50.00",
             "option_values": [],
             "stock": 1,
@@ -179,9 +208,9 @@ class TestVariantInputSerializer:
         }
 
         serializer = VariantInputSerializer(data=data)
-        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
 
-        variant = serializer.save()
+        variant = serializer.save(product=product)
         assert variant.product == product
         assert variant.price == 50
         assert variant.sku == data["sku"]
@@ -189,7 +218,6 @@ class TestVariantInputSerializer:
     @pytest.mark.it("test creates a variant with an option value")
     def test_create_a_variant_with_an_option_value(self, product, option_value):
         data = {
-            "product": str(product.id),
             "price": "50.00",
             "option_values": [str(option_value.id)],
             "stock": 1,
@@ -200,7 +228,7 @@ class TestVariantInputSerializer:
         serializer = VariantInputSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
-        variant = serializer.save()
+        variant = serializer.save(product=product)
 
         assert variant.option_values.count() == 1
         assert option_value in variant.option_values.all()
@@ -208,7 +236,6 @@ class TestVariantInputSerializer:
     @pytest.mark.it("test validation fails if SKU is not unique")
     def test_variant_create_duplicate_sku(self, product, variant):
         data = {
-            "product": str(product.id),
             "price": "50.00",
             "option_values": [],
             "stock": 1,
@@ -223,12 +250,75 @@ class TestVariantInputSerializer:
         assert "sku" in serializer.errors
         assert serializer.errors["sku"][0].code == "unique"
 
+    @pytest.mark.it("image belonging to the same product passes validate_images")
+    def test_image_from_same_product_passes_validation(self, product):
+        image = ProductImageFactory(product=product)
+        data = {
+            "price": "50.00",
+            "option_values": [],
+            "stock": 1,
+            "sku": "VALID-SKU-001",
+            "is_master": False,
+            "images": [str(image.id)],
+        }
+        serializer = VariantInputSerializer(
+            data=data, context={"product_id": str(product.id)}
+        )
+        assert serializer.is_valid(), serializer.errors
+
+    @pytest.mark.it("image from a different product fails validate_images")
+    def test_image_from_different_product_fails_validation(self, product):
+        other_product = ProductFactory()
+        foreign_image = ProductImageFactory(product=other_product)
+        data = {
+            "price": "50.00",
+            "option_values": [],
+            "stock": 1,
+            "sku": "VALID-SKU-002",
+            "is_master": False,
+            "images": [str(foreign_image.id)],
+        }
+        serializer = VariantInputSerializer(
+            data=data, context={"product_id": str(product.id)}
+        )
+        assert not serializer.is_valid()
+        assert "images" in serializer.errors
+
+    @pytest.mark.it("setting is_master=True on a second variant fails validation")
+    def test_duplicate_master_variant_fails_validation(self, product):
+        VariantFactory(product=product, is_master=True, images=[])
+        data = {
+            "price": "50.00",
+            "option_values": [],
+            "stock": 1,
+            "sku": "MASTER-SKU-002",
+            "is_master": True,
+        }
+        serializer = VariantInputSerializer(
+            data=data, context={"product_id": str(product.id)}
+        )
+        assert not serializer.is_valid()
+        assert "is_master" in serializer.errors
+
+    @pytest.mark.it("setting is_master=True when no master exists passes validation")
+    def test_first_master_variant_passes_validation(self, product):
+        data = {
+            "price": "50.00",
+            "option_values": [],
+            "stock": 1,
+            "sku": "MASTER-SKU-001",
+            "is_master": True,
+        }
+        serializer = VariantInputSerializer(
+            data=data, context={"product_id": str(product.id)}
+        )
+        assert serializer.is_valid(), serializer.errors
+
 
 class TestProductImageInputSerializer:
     @pytest.mark.it("test that you can create a new product image")
     def test_product_image_creation(self, product, image):
         data = {
-            "product": str(product.id),
             "image": image,
             "alt_text": "this is an example alt text",
             "is_feature": False,
@@ -239,25 +329,39 @@ class TestProductImageInputSerializer:
 
         assert serializer.is_valid()
 
-        new_image = serializer.save()
+        new_image = serializer.save(product=product)
         assert new_image.product == product
         assert new_image.image
         assert "test_image" in new_image.image.name
         assert new_image.alt_text == data["alt_text"]
 
-    def test_duplicate_display_order(self, product, image):
-        image1 = ProductImageFactory(product=product)
+    @pytest.mark.it("duplicate display_order for same product fails validation")
+    def test_duplicate_display_order_fails_validation(self, product, image):
+        ProductImageFactory(product=product, display_order=1)
         data = {
-            "product": str(product.id),
             "image": image,
-            "alt_text": "this is an example alt text",
+            "alt_text": "another image",
             "is_feature": False,
             "display_order": 1,
         }
+        serializer = ProductImageInputSerializer(
+            data=data, context={"product_id": str(product.id)}
+        )
+        assert not serializer.is_valid()
+        assert "display_order" in serializer.errors
 
-        serializer = ProductImageInputSerializer(data=data)
-
-        assert serializer.is_valid()
-
-        with pytest.raises(IntegrityError):
-            serializer.save()
+    @pytest.mark.it("same display_order on a different product passes validation")
+    def test_display_order_unique_per_product(self, image):
+        other_product = ProductFactory()
+        ProductImageFactory(product=other_product, display_order=1)
+        target_product = ProductFactory()
+        data = {
+            "image": image,
+            "alt_text": "image on different product",
+            "is_feature": False,
+            "display_order": 1,
+        }
+        serializer = ProductImageInputSerializer(
+            data=data, context={"product_id": str(target_product.id)}
+        )
+        assert serializer.is_valid(), serializer.errors

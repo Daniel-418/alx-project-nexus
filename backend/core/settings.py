@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "products",
     "categories",
+    "django_filters",
 ]
 
 REST_FRAMEWORK = {

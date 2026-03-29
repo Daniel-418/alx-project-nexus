@@ -38,6 +38,7 @@ class Product(SoftDeleteMixin):
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # cascade soft-delete to related variants and images
     def delete(self, *args, **kwargs):
         self.variants.all().update(deleted_at=timezone.now())
         self.product_images.all().update(deleted_at=timezone.now())
@@ -53,6 +54,7 @@ class OptionType(models.Model):
     def __str__(self) -> str:
         return self.option_type
 
+    # normalize option_type to uppercase before saving
     def save(self, *args, **kwargs):
         if self.option_type:
             self.option_type = self.option_type.strip().upper()
@@ -65,12 +67,14 @@ class OptionValue(models.Model):
     option_type = models.ForeignKey(OptionType, on_delete=models.CASCADE)
 
     class Meta:
+        # unique constraint on option_type + value combination
         constraints = [
             models.UniqueConstraint(
                 fields=["option_type", "value"], name="unique_option_value_combination"
             )
         ]
 
+    # normalize value to lowercase before saving
     def save(self, *args, **kwargs):
         if self.value:
             self.value = self.value.strip().lower()
@@ -107,6 +111,7 @@ class ProductImage(SoftDeleteMixin):
         ]
         ordering = ["display_order"]
 
+    # reassign display_order if the slot is already taken before restoring
     def restore(self):
         conflict = ProductImage.objects.filter(
             product=self.product,
@@ -119,6 +124,7 @@ class ProductImage(SoftDeleteMixin):
 
         super().restore()
 
+    # returns the next available display order position for this product
     def _get_next_display_order(self):
         qs = ProductImage.all_objects.filter(product=self.product)
         last_order = qs.aggregate(Max("display_order"))["display_order__max"]
@@ -146,3 +152,13 @@ class Variant(SoftDeleteMixin):
     is_master = models.BooleanField(default=False)
     price = models.DecimalField(decimal_places=2, max_digits=15)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # partial unique index: only one active master variant allowed per product
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product"],
+                condition=models.Q(is_master=True, deleted_at__isnull=True),
+                name="unique_active_master_variant_per_product",
+            )
+        ]

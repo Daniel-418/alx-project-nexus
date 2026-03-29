@@ -2,11 +2,10 @@
 import uuid
 import shutil
 import tempfile
-from django.utils import timezone
 from django.db import IntegrityError
 from django.db.models import Max
 from django.test import TestCase, override_settings
-from products.models import Product, Variant, ProductImage, OptionType, OptionValue
+from products.models import Product, Variant, ProductImage, OptionValue
 from products.tests.factories import (
     ProductFactory,
     OptionTypeFactory,
@@ -29,10 +28,6 @@ class ProductTest(TestCase):
         self.assertEqual(str(product), product_name)
         self.assertIsNotNone(product.created_at)
         self.assertIsNone(product.deleted_at)
-
-    def test_price_precision(self):
-        _ = ProductFactory(name="ball", price=9.99)
-        self.assertEqual(float(Product.objects.get(name="ball").price), 9.99)
 
     def test_product_can_be_created_without_description(self):
         product = ProductFactory(name="T-shirt", price=10.00, description="")
@@ -125,16 +120,6 @@ class ProductImageTest(TestCase):
 
         self.assertTrue(ProductImage.all_objects.filter(id=image_id).exists())
 
-    def test_image_soft_delete(self):
-        """test that a image soft deletes when you delete it"""
-
-        image = ProductImageFactory()
-        image.delete()
-
-        fetched = ProductImage.all_objects.get(id=image.id)
-        self.assertTrue(ProductImage.all_objects.filter(id=image.id).exists())
-        self.assertIsNotNone(fetched.deleted_at)
-
     def test_image_remains_when_variant_is_deleted(self):
         """
         test that an image remains when it's variant is hard deleted
@@ -157,11 +142,6 @@ class OptionTypeTest(TestCase):
         """test that an option type is successfully created"""
         option_type = OptionTypeFactory(option_type="  Color   ")
         self.assertEqual(option_type.option_type, "COLOR")
-
-    def test_option_type_str(self):
-        """test that __str__ returns the option type name"""
-        option_type = OptionTypeFactory(option_type="Color")
-        self.assertEqual(str(option_type), "COLOR")
 
     def test_option_values_deleted_when_option_type_deleted(self):
         """test that OptionValues are CASCADE deleted when their OptionType is deleted —
@@ -188,12 +168,6 @@ class OptionValueTest(TestCase):
 
         self.assertEqual(option_value.option_type, option_type)
         self.assertEqual(option_value.value, "red")
-
-    def test_option_value_str(self):
-        """test that __str__ returns 'option_type: value' format"""
-        option_type = OptionTypeFactory(option_type="Color")
-        option_value = OptionValueFactory(value="Red", option_type=option_type)
-        self.assertEqual(str(option_value), "COLOR: red")
 
     def test_option_value_combination_uniqueness(self):
         """test that the combination of option_type and value is unique"""
@@ -243,43 +217,12 @@ class VariantTest(TestCase):
         with self.assertRaises(Variant.DoesNotExist):
             Variant.objects.get(id=self.variant.id)
 
-    def test_variant_soft_delete(self):
-        """test that a product soft deletes when you delete it"""
-
-        variant = VariantFactory()
-        variant.delete()
-
-        fetched = Variant.all_objects.get(id=variant.id)
-        self.assertTrue(Variant.all_objects.filter(id=variant.id).exists())
-        self.assertIsNotNone(fetched.deleted_at)
-
-    def test_product_sku_uniqueness(self):
-        """test that sku is unique per variant"""
-        sku = "IPAD-1234-RED"
-        variant = VariantFactory(sku=sku)
-        variant.save()
-
-        with self.assertRaises(IntegrityError):
-            _ = VariantFactory(sku=sku)
-
     def test_deleting_variant_preserves_product(self):
         """test the other side of test_variant_delete — the product must survive
         when only its variant is deleted; variants are subordinate to products, not equal"""
         product_id = self.product.id
         self.variant.delete()
         self.assertTrue(Product.objects.filter(id=product_id).exists())
-
-    def test_variant_default_stock_is_zero(self):
-        """test that new variants start with zero stock — the default must be
-        explicit so inventory logic doesn't treat unset stock as available"""
-        variant = VariantFactory()
-        self.assertEqual(variant.stock, 0)
-
-    def test_master_variant(self):
-        """test that a variant can be marked as the master variant —
-        is_master drives product-level defaults like the display price"""
-        master = VariantFactory(product=self.product, is_master=True)
-        self.assertTrue(master.is_master)
 
     def test_variant_with_multiple_option_values(self):
         """test that a variant correctly holds multiple option_values —

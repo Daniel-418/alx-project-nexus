@@ -20,6 +20,7 @@ class Register(APIView):
     @extend_schema(
         request=CustomUserSerializerInput, responses={201, CustomUserSerializerOutput}
     )
+    # validate input, create user, and return JWT tokens
     def post(self, request):
         serializer = CustomUserSerializerInput(data=request.data)
         if serializer.is_valid():
@@ -43,6 +44,7 @@ class Login(APIView):
     """
 
     @extend_schema(request=LoginSerializer, responses={200, "Token response"})
+    # validate credentials and return JWT tokens
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
 
@@ -61,9 +63,11 @@ class Login(APIView):
         )
 
 
+# returns the authenticated user's own profile
 class UserProfile(APIView):
     permission_classes = [IsAuthenticated]
 
+    # serialize and return the requesting user
     def get(self, request):
         serializer = CustomUserSerializerOutput(instance=request.user)
 
