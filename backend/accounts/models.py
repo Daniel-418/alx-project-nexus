@@ -6,7 +6,7 @@ from django.utils import timezone
 from accounts.managers import CustomUserManager
 
 
-# Create your models here.
+# custom user model using email as the username field
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone_number = models.CharField(max_length=20, null=True, blank=True)
@@ -17,7 +17,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     objects = CustomUserManager()
     USERNAME_FIELD = "email"

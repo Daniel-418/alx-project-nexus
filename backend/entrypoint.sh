@@ -14,10 +14,11 @@ done
 
 echo "PostgreSQL started"
 # make migrations to database
-echo "running migrations"
-python manage.py makemigrations
-python manage.py migrate
-echo "done running migrations"
+if [ "$RUN_MIGRATIONS" = "true" ]; then
+	echo "Running migrations..."
+	python manage.py migrate --noinput
+	echo "done running migrations"
+fi
 
 # start the server
 exec "$@"

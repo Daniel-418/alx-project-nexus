@@ -11,6 +11,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     class Meta:  # pyright: ignore
         model = User
+        skip_postgeneration_save = True
 
     email = factory.Faker("email")
     first_name = factory.Faker("first_name")
@@ -26,3 +27,6 @@ class UserFactory(factory.django.DjangoModelFactory):
     def password(self, create, extracted, **kwargs):
         password = extracted
         self.set_password(password)
+
+        if create:
+            self.save()

@@ -28,8 +28,8 @@ class CustomUserSerializer(TestCase):
         user = serializer.save()
         output = serializer.data
 
-        self.assertEqual(user.email, "daniel@adfadfa.dev")
-        self.assertNotEqual(user.password, "securepassword")
+        self.assertEqual(user.email, data["email"])
+        self.assertNotEqual(user.password, data["password"])
         self.assertTrue(user.check_password("securepassword"))
         self.assertNotIn("password", output)
         self.assertIn("email", output)

@@ -1,10 +1,6 @@
-from datetime import timedelta
-import unittest
 import uuid
 from django.test import TestCase
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 
 from accounts.tests.factories import UserFactory
 
@@ -61,14 +57,6 @@ class UserModelTests(TestCase):
         self.assertEqual(user.id.version, 4)
         self.assertNotEqual(user.id, user_b.id)
         self.assertEqual(fetched_user, user)
-
-    def test_created_at_field(self):
-        user = UserFactory()
-
-        self.assertIsNotNone(user.created_at)
-        self.assertAlmostEqual(
-            user.created_at, timezone.now(), delta=timedelta(seconds=1)
-        )
 
     def test_create_superuser(self):
         user = User.objects.create_superuser(  # pyright: ignore

@@ -1,0 +1,17 @@
+[run]
+# Tell coverage which files to completely ignore
+omit =
+    */migrations/*
+    */tests/*
+    */tests.py
+    */factories.py
+    *__init__.py
+    manage.py
+    core/*
+    venv/*
+    */admin.py
+    */apps.py
+
+[report]
+# Tell coverage to ignore files that are 100% empty
+skip_empty = true

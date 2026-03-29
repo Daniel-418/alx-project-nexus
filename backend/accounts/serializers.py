@@ -5,6 +5,7 @@ from rest_framework import serializers
 from accounts.models import User
 
 
+# strips sensitive fields from user output
 class CustomUserSerializerOutput(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -24,6 +25,7 @@ class CustomUserSerializerInput(serializers.ModelSerializer):
             "password": {"write_only": True, "validators": [validate_password]},
         }
 
+    # pop password, hash it, and save the user
     def create(self, validated_data):
         password = validated_data.pop("password")
         user = User(**validated_data)
@@ -40,6 +42,7 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True)
 
+    # authenticate credentials and raise error if invalid
     def validate(self, data):
         email = data.get("email")
         password = data.get("password")
