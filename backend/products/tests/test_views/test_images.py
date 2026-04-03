@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from products.models import ProductImage
 from products.tests.factories import ProductImageFactory, ProductFactory
-from products.tests.test_views.fixtures import staff_client, pytestmark
+from core.tests.fixtures import staff_client, pytestmark
 
 _B64_IMG = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
 

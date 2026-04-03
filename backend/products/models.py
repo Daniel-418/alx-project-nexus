@@ -37,6 +37,9 @@ class Product(SoftDeleteMixin):
     name = models.CharField(max_length=50)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    categories = models.ManyToManyField(
+        "categories.Category", related_name="products", blank=True
+    )
 
     # cascade soft-delete to related variants and images
     def delete(self, *args, **kwargs):

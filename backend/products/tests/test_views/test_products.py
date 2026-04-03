@@ -6,7 +6,8 @@ from django.urls import reverse
 
 from products.models import Product, Variant, ProductImage
 from products.tests.factories import VariantFactory, ProductImageFactory
-from products.tests.test_views.fixtures import (
+from categories.tests.factories import CategoryFactory
+from core.tests.fixtures import (
     staff_client,
     standard_user_client,
     anonymous_user,
@@ -37,6 +38,7 @@ class TestProductCreate:
         assert "id" in response.json()
         assert "price" in response.json()
         assert "created_at" in response.json()
+        assert "categories" in response.json()
 
     @pytest.mark.it("test that a product cannot be created by a non_staff user")
     def test_non_staff_cannot_create_product(self, standard_user_client, create_url):
@@ -247,6 +249,28 @@ class TestProductDestroy:
         fetched_image = ProductImage.all_objects.get(pk=image.pk)
         assert fetched_variant.deleted_at is not None
         assert fetched_image.deleted_at is not None
+
+
+@pytest.mark.describe("test filtering products by category")
+class TestProductFilterByCategory:
+    @pytest.mark.it("test that products can be filtered by category")
+    def test_filter_by_category(self, anonymous_user, create_url):
+        cat = CategoryFactory()
+        product_in = ProductFactory(categories=[cat])
+        ProductFactory()
+
+        response = anonymous_user.get(create_url, {"category": str(cat.id)})
+        assert response.status_code == 200
+        ids = [p["id"] for p in response.json()]
+        assert str(product_in.id) in ids
+        assert len(ids) == 1
+
+    @pytest.mark.it("test that filtering by a non-existent category returns empty list")
+    def test_filter_by_unknown_category_returns_empty(self, anonymous_user, create_url):
+        ProductFactory()
+        response = anonymous_user.get(create_url, {"category": str(uuid.uuid4())})
+        assert response.status_code == 200
+        assert response.json() == []
 
 
 @pytest.mark.describe("test restroing a soft-deleted product via the viewset")

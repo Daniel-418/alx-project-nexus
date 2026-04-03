@@ -2,7 +2,7 @@
 import pytest
 from django.urls import reverse
 from products.tests.factories import OptionTypeFactory, OptionValueFactory
-from products.tests.test_views.fixtures import staff_client, standard_user_client, anonymous_user
+from core.tests.fixtures import staff_client, standard_user_client, anonymous_user
 
 pytestmark = pytest.mark.django_db
 
@@ -55,7 +55,9 @@ class TestOptionValueFilter:
     @pytest.mark.it(
         "test that filtering by an option type with no values returns an empty list"
     )
-    def test_option_type_filter_with_no_values_returns_empty_list(self, staff_client, url):
+    def test_option_type_filter_with_no_values_returns_empty_list(
+        self, staff_client, url
+    ):
         option_type = OptionTypeFactory()
         OptionValueFactory()  # belongs to a different option type
 

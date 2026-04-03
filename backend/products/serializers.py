@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from products.models import Product, ProductImage, Variant, OptionType, OptionValue
-from django.db import transaction
+from categories.models import Category
+from categories.serializers import CategoryOutputSerializer
 
 
 class OptionValueSerializer(serializers.ModelSerializer):
@@ -138,9 +139,13 @@ class ProductImageOutputSerializer(serializers.ModelSerializer):
 
 
 class ProductInputSerializer(serializers.ModelSerializer):
+    categories = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Category.objects.all(), required=False
+    )
+
     class Meta:
         model = Product
-        fields = ["name", "price", "description", "created_at"]
+        fields = ["name", "price", "description", "created_at", "categories"]
         read_only_fields = ["created_at"]
 
 
@@ -149,6 +154,7 @@ class ProductOutputSerializer(serializers.ModelSerializer):
     images = ProductImageOutputSerializer(
         source="product_images", many=True, read_only=True
     )
+    categories = CategoryOutputSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -160,6 +166,7 @@ class ProductOutputSerializer(serializers.ModelSerializer):
             "created_at",
             "variants",
             "images",
+            "categories",
             "deleted_at",
         ]
         read_only_fields = [

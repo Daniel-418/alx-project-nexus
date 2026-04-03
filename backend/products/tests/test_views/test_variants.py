@@ -9,7 +9,7 @@ from products.tests.factories import (
     ProductImageFactory,
     VariantFactory,
 )
-from products.tests.test_views.fixtures import (
+from core.tests.fixtures import (
     staff_client,
     standard_user_client,
     anonymous_user,
@@ -342,7 +342,9 @@ class TestVariantRestore:
         assert deleted_variant.deleted_at is not None
 
 
-@pytest.mark.describe("test adding/removing images from a variant via the images action")
+@pytest.mark.describe(
+    "test adding/removing images from a variant via the images action"
+)
 class TestVariantImageManagement:
     @pytest.fixture
     def variant(self, product):
@@ -386,9 +388,7 @@ class TestVariantImageManagement:
         assert own_image not in variant.images.all()
 
     @pytest.mark.it("adding an image from a different product returns 400")
-    def test_foreign_image_rejected(
-        self, staff_client, images_url, foreign_image
-    ):
+    def test_foreign_image_rejected(self, staff_client, images_url, foreign_image):
         response = staff_client.post(
             images_url,
             {"images": [str(foreign_image.id)]},
@@ -407,9 +407,7 @@ class TestVariantImageManagement:
         assert response.status_code == 403
 
     @pytest.mark.it("anonymous user cannot add images")
-    def test_anonymous_cannot_add_images(
-        self, anonymous_user, images_url, own_image
-    ):
+    def test_anonymous_cannot_add_images(self, anonymous_user, images_url, own_image):
         response = anonymous_user.post(
             images_url, {"images": [str(own_image.id)]}, content_type="application/json"
         )
@@ -418,10 +416,10 @@ class TestVariantImageManagement:
 
 @pytest.mark.describe("test image ownership validation on variant create/update")
 class TestVariantImageOwnershipOnWrite:
-    @pytest.mark.it("creating a variant with an image from a different product returns 400")
-    def test_create_variant_with_foreign_image_returns_400(
-        self, staff_client, product
-    ):
+    @pytest.mark.it(
+        "creating a variant with an image from a different product returns 400"
+    )
+    def test_create_variant_with_foreign_image_returns_400(self, staff_client, product):
         other_product = ProductFactory()
         foreign_image = ProductImageFactory(product=other_product)
 
@@ -438,10 +436,10 @@ class TestVariantImageOwnershipOnWrite:
         assert response.status_code == 400
         assert "images" in response.json()
 
-    @pytest.mark.it("updating a variant with an image from a different product returns 400")
-    def test_update_variant_with_foreign_image_returns_400(
-        self, staff_client, product
-    ):
+    @pytest.mark.it(
+        "updating a variant with an image from a different product returns 400"
+    )
+    def test_update_variant_with_foreign_image_returns_400(self, staff_client, product):
         variant = VariantFactory(product=product, images=[])
         other_product = ProductFactory()
         foreign_image = ProductImageFactory(product=other_product)

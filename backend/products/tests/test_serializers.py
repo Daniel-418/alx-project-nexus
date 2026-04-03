@@ -74,6 +74,7 @@ class TestProductOutputSerializer:
             ),
             "variants": [],
             "images": [],
+            "categories": [],
         }
 
         assert serializer.data == expected_data
@@ -98,6 +99,7 @@ class TestProductOutputSerializer:
             ),
             "variants": [variant_serializer.data],
             "images": image_serializer.data,
+            "categories": [],
         }
 
         assert serializer.data == expected_data
@@ -314,6 +316,31 @@ class TestVariantInputSerializer:
         )
         assert serializer.is_valid(), serializer.errors
 
+    @pytest.mark.it("validate_images falls back to instance.product_id when no context")
+    def test_image_validation_uses_instance_product_id(self, product):
+        variant = VariantFactory(product=product, images=[])
+        other_product = ProductFactory()
+        foreign_image = ProductImageFactory(product=other_product)
+
+        serializer = VariantInputSerializer(
+            instance=variant,
+            data={"price": "50.00", "option_values": [], "stock": 1, "sku": variant.sku, "is_master": False, "images": [str(foreign_image.id)]},
+            context={},
+        )
+        assert not serializer.is_valid()
+        assert "images" in serializer.errors
+
+    @pytest.mark.it("patching is_master=True on the existing master variant passes validation")
+    def test_updating_master_variant_keeps_is_master(self, product):
+        variant = VariantFactory(product=product, is_master=True, images=[])
+
+        serializer = VariantInputSerializer(
+            instance=variant,
+            data={"price": "50.00", "option_values": [], "stock": 1, "sku": variant.sku, "is_master": True},
+            context={},
+        )
+        assert serializer.is_valid(), serializer.errors
+
 
 class TestProductImageInputSerializer:
     @pytest.mark.it("test that you can create a new product image")
@@ -349,6 +376,17 @@ class TestProductImageInputSerializer:
         )
         assert not serializer.is_valid()
         assert "display_order" in serializer.errors
+
+    @pytest.mark.it("updating an image with its own display_order passes validation")
+    def test_same_display_order_on_update_passes_validation(self, product, image):
+        existing = ProductImageFactory(product=product, display_order=1)
+
+        serializer = ProductImageInputSerializer(
+            instance=existing,
+            data={"image": image, "alt_text": "updated", "is_feature": False, "display_order": 1},
+            context={"product_id": str(product.id)},
+        )
+        assert serializer.is_valid(), serializer.errors
 
     @pytest.mark.it("same display_order on a different product passes validation")
     def test_display_order_unique_per_product(self, image):

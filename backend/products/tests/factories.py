@@ -6,10 +6,18 @@ import products.models as models
 class ProductFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Product
+        skip_postgeneration_save = True
 
     price = factory.Faker("pydecimal", left_digits=3, right_digits=2, positive=True)
     name = factory.Faker("word")
     description = factory.Faker("text")
+
+    @factory.post_generation
+    def categories(self, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for category in extracted:
+            self.categories.add(category)
 
 
 class OptionTypeFactory(factory.django.DjangoModelFactory):

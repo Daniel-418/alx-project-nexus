@@ -3,7 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from accounts.tests.factories import UserFactory
 from unittest.mock import Mock
 
-from products.permissions import CanManageCatalog
+from core.permissions import CanManageCatalog
 
 pytestmark = pytest.mark.django_db
 
