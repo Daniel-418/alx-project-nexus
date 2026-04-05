@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "products",
     "categories",
     "django_filters",
+    "cart",
 ]
 
 REST_FRAMEWORK = {

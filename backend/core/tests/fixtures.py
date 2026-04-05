@@ -9,6 +9,7 @@ from django.urls import reverse
 pytestmark = pytest.mark.django_db
 
 
+# provides an authenticated user
 @pytest.fixture
 def standard_user_client():
     client = Client()
@@ -19,6 +20,7 @@ def standard_user_client():
     yield client
 
 
+# provides a staff user
 @pytest.fixture
 def staff_client():
     client = Client()
@@ -29,6 +31,7 @@ def staff_client():
     yield client
 
 
+# provides an anonymous user
 @pytest.fixture
 def anonymous_user():
     client = Client()

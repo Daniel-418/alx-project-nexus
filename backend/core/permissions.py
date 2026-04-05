@@ -1,3 +1,4 @@
+# type: ignore
 from rest_framework.permissions import BasePermission
 
 

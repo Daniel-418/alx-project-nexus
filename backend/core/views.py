@@ -30,7 +30,7 @@ class RestoreMixin:
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class BaseCatalogViewset(viewsets.ModelViewSet):
+class DualSerializerMixin:
     # input and output serializer class to be overriden by children
     input_serializer_class = None
     output_serializer_class = None
@@ -41,33 +41,31 @@ class BaseCatalogViewset(viewsets.ModelViewSet):
             return self.input_serializer_class
         return self.output_serializer_class
 
+    def perform_create(self, serializer):
+        return serializer.save()
+
+    # override create to use a separate serializer to output the instance after creating
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+        output_serializer = self.output_serializer_class(instance)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+    # override update to use a separate serializer to output the instance after updating
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        output_serializer = self.output_serializer_class(instance)
+        return Response(output_serializer.data)
+
+
+class BaseCatalogViewset(DualSerializerMixin, viewsets.ModelViewSet):
     # only staff can manipulate instances, anybody can view
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy", "restore"]:
             return [CanManageCatalog()]
         return [AllowAny()]
-
-    def perform_create(self, serializer):
-        return serializer.save()
-
-    # override create to use a separate serializer to output the the instance after creating
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        instance = self.perform_create(serializer)
-
-        output_serializer = self.output_serializer_class(instance)
-        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
-
-    # override update to use a separate serializer to output the the instance after updating
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop("partial", False)
-        instance = self.get_object()
-
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        instance = serializer.save()
-
-        output_serializer = self.output_serializer_class(instance)
-        return Response(output_serializer.data)
