@@ -1,3 +1,4 @@
+# type: ignore
 import uuid
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -13,6 +14,10 @@ class Cart(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def total(self):
+        return sum(item.variant.price * item.quantity for item in self.items.all())
 
 
 class CartItem(models.Model):

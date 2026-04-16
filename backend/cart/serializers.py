@@ -31,12 +31,21 @@ class CartOutputSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cart
-        fields = ["id", "items", "total", "user", "session_id", "expires_at", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "items",
+            "total",
+            "user",
+            "session_id",
+            "expires_at",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = fields
 
     # sum of variant price * quantity across all items in the cart
     def get_total(self, obj):
-        return sum(item.variant.price * item.quantity for item in obj.items.all())
+        return obj.total
 
 
 class MergeSerializer(serializers.Serializer):
