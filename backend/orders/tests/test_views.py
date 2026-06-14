@@ -227,7 +227,7 @@ class TestOrderList:
         OrderFactory()  # another user's order
         response = standard_user_client.get(order_list_url)
         assert response.status_code == 200
-        ids = [o["id"] for o in response.json()]
+        ids = [o["id"] for o in response.json()["results"]]
         assert str(own.id) in ids
         assert len(ids) == 1
 
@@ -237,7 +237,7 @@ class TestOrderList:
         OrderFactory()
         response = staff_client.get(order_list_url)
         assert response.status_code == 200
-        assert len(response.json()) == 2
+        assert response.json()["count"] == 2
 
     @pytest.mark.it("unauthenticated user is rejected")
     def test_unauthenticated_gets_401(self, anonymous_user, order_list_url):

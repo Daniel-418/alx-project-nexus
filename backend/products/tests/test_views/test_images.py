@@ -90,7 +90,7 @@ class TestProductImageList:
         response = staff_client.get(url)
         assert response.status_code == 200
 
-        ids = [item["id"] for item in response.json()]
+        ids = [item["id"] for item in response.json()["results"]]
         assert str(img1.id) in ids
         assert str(img2.id) in ids
         assert str(decoy_img.id) not in ids
@@ -102,7 +102,7 @@ class TestProductImageList:
         existing_image.delete()
         url = reverse("product-images-list", kwargs={"product_pk": product.id})
         response = staff_client.get(url)
-        ids = [item["id"] for item in response.json()]
+        ids = [item["id"] for item in response.json()["results"]]
         assert str(existing_image.id) not in ids
 
 
@@ -174,7 +174,7 @@ class TestProductImageDestroy:
     ):
         staff_client.delete(detail_url)
         response = staff_client.get(list_url)
-        ids = [item["id"] for item in response.json()]
+        ids = [item["id"] for item in response.json()["results"]]
         assert str(existing_image.pk) not in ids
 
 

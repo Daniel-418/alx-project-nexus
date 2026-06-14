@@ -70,6 +70,7 @@ class OptionValue(models.Model):
     option_type = models.ForeignKey(OptionType, on_delete=models.CASCADE)
 
     class Meta:
+        ordering = ["option_type", "value"]
         # unique constraint on option_type + value combination
         constraints = [
             models.UniqueConstraint(
@@ -157,6 +158,7 @@ class Variant(SoftDeleteMixin):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ["created_at"]
         # partial unique index: only one active master variant allowed per product
         constraints = [
             models.UniqueConstraint(

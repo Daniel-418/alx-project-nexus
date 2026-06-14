@@ -2,6 +2,7 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.views import Response
 from rest_framework import status
 
@@ -62,6 +63,10 @@ class ProductViewset(RestoreMixin, BaseCatalogViewset):
     queryset = Product.objects.all()
     input_serializer_class = ProductInputSerializer
     output_serializer_class = ProductOutputSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["price", "created_at"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
         qs = super().get_queryset()

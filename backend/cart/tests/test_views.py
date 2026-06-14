@@ -44,7 +44,7 @@ class TestCartQuerysetScoping:
 
         response = standard_user_client.get(reverse("cart-list"))
         assert response.status_code == 200
-        ids = [c["id"] for c in response.json()]
+        ids = [c["id"] for c in response.json()["results"]]
         assert str(own_cart.id) in ids
         assert len(ids) == 1
 
@@ -57,7 +57,7 @@ class TestCartQuerysetScoping:
         anonymous_user.credentials(HTTP_X_CART_SESSION=str(session_id))
         response = anonymous_user.get(reverse("cart-list"))
         assert response.status_code == 200
-        ids = [c["id"] for c in response.json()]
+        ids = [c["id"] for c in response.json()["results"]]
         assert str(own_cart.id) in ids
         assert len(ids) == 1
 
@@ -99,7 +99,7 @@ class TestCartItemViewset:
 
         response = standard_user_client.get(self.item_list_url(user_cart.id))
         assert response.status_code == 200
-        ids = [i["id"] for i in response.json()]
+        ids = [i["id"] for i in response.json()["results"]]
         assert str(item.id) in ids
         assert len(ids) == 1
 

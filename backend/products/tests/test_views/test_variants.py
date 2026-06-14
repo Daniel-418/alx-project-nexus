@@ -141,9 +141,9 @@ class TestVariantList:
 
         assert response.status_code == 200
 
-        assert len(data) == 2
+        assert data["count"] == 2
 
-        returned_ids = [item["id"] for item in data]
+        returned_ids = [item["id"] for item in data["results"]]
 
         assert str(target_variant_1.id) in returned_ids
         assert str(target_variant_2.id) in returned_ids
@@ -283,7 +283,7 @@ class TestVariantDestroy:
     ):
         staff_client.delete(detail_url)
         response = staff_client.get(list_url)
-        ids = [v["id"] for v in response.json()]
+        ids = [v["id"] for v in response.json()["results"]]
         assert str(variant.pk) not in ids
 
     @pytest.mark.it("test that a non-staff user cannot delete a variant")

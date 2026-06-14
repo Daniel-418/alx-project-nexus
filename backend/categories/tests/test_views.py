@@ -45,7 +45,7 @@ class TestCategoryList:
         response = anonymous_user.get(create_url)
 
         assert response.status_code == 200
-        assert len(response.json()) == 2
+        assert response.json()["count"] == 2
 
 
 @pytest.mark.describe("test retrieving a single category using the viewset")

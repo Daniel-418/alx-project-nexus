@@ -34,6 +34,12 @@ class CustomUserSerializerInput(serializers.ModelSerializer):
         return user
 
 
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "phone_number"]
+
+
 class LoginSerializer(serializers.Serializer):
     """
     Serializes fields passed to login view

@@ -9,6 +9,7 @@ from accounts.serializers import (
     CustomUserSerializerInput,
     CustomUserSerializerOutput,
     LoginSerializer,
+    UserUpdateSerializer,
 )
 
 
@@ -63,12 +64,17 @@ class Login(APIView):
         )
 
 
-# returns the authenticated user's own profile
+# returns and updates the authenticated user's own profile
 class UserProfile(APIView):
     permission_classes = [IsAuthenticated]
 
-    # serialize and return the requesting user
     def get(self, request):
-        serializer = CustomUserSerializerOutput(instance=request.user)
+        return Response(CustomUserSerializerOutput(instance=request.user).data)
 
-        return Response(serializer.data)
+    def patch(self, request):
+        serializer = UserUpdateSerializer(
+            instance=request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(CustomUserSerializerOutput(instance=request.user).data)

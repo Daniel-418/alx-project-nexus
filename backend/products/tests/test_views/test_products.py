@@ -87,8 +87,8 @@ class TestProductList:
         data = response.json()
 
         assert response.status_code == 200
-        assert len(data) == 2
-        assert "variants" in data[0]
+        assert data["count"] == 2
+        assert "variants" in data["results"][0]
 
 
 @pytest.mark.describe("test retrieving a single product using the viewset")
@@ -213,7 +213,7 @@ class TestProductDestroy:
         staff_client.delete(detail_url)
 
         response = staff_client.get(create_url)
-        ids = [p["id"] for p in response.json()]
+        ids = [p["id"] for p in response.json()["results"]]
         assert str(product.pk) not in ids
 
     @pytest.mark.it("test that a non-staff user cannot delete a product")
@@ -261,7 +261,7 @@ class TestProductFilterByCategory:
 
         response = anonymous_user.get(create_url, {"category": str(cat.id)})
         assert response.status_code == 200
-        ids = [p["id"] for p in response.json()]
+        ids = [p["id"] for p in response.json()["results"]]
         assert str(product_in.id) in ids
         assert len(ids) == 1
 
@@ -270,7 +270,7 @@ class TestProductFilterByCategory:
         ProductFactory()
         response = anonymous_user.get(create_url, {"category": str(uuid.uuid4())})
         assert response.status_code == 200
-        assert response.json() == []
+        assert response.json()["count"] == 0
 
 
 @pytest.mark.describe("test restroing a soft-deleted product via the viewset")

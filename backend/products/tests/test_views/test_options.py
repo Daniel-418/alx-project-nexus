@@ -26,9 +26,9 @@ class TestOptionValueFilter:
 
         data = response.json()
 
-        assert len(data) == 2
+        assert data["count"] == 2
 
-        ids = [item["id"] for item in data]
+        ids = [item["id"] for item in data["results"]]
 
         assert option_1.id in ids
         assert option_2.id in ids
@@ -50,7 +50,7 @@ class TestOptionValueFilter:
         assert response.status_code == 200
 
         data = response.json()
-        assert len(data) == 2
+        assert data["count"] == 2
 
     @pytest.mark.it(
         "test that filtering by an option type with no values returns an empty list"
@@ -65,4 +65,4 @@ class TestOptionValueFilter:
         response = staff_client.get(url)
 
         assert response.status_code == 200
-        assert response.json() == []
+        assert response.json()["count"] == 0
