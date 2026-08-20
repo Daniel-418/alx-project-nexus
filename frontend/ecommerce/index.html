@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Fetch the two above-the-fold faces in parallel with the CSS instead
+         of waiting for the stylesheet to parse and discover them.
+         `crossorigin` is required even same-origin: fonts are always
+         fetched in CORS mode, and without it the browser downloads twice.
+         Only preload what the first screen actually renders — every extra
+         preload competes with the CSS and JS for bandwidth. -->
+    <link rel="preload" as="font" type="font/ttf" href="/fonts/Poppins-Regular.ttf" crossorigin />
+    <link rel="preload" as="font" type="font/otf" href="/fonts/kolak.otf" crossorigin />
+
     <title>ecommerce</title>
   </head>
   <body>

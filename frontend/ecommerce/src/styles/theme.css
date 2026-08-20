@@ -1,0 +1,180 @@
+/* ============================================================
+   Angelique Jewels — design tokens
+
+   Two layers, on purpose:
+
+   1. PALETTE (:root)  — raw brand values. Plain CSS variables, so
+      Tailwind does NOT generate utilities for them. This is
+      deliberate: it keeps `bg-aj-teal-900` out of autocomplete and
+      pushes components toward semantic names instead.
+
+   2. SEMANTIC (@theme) — named by ROLE, not appearance. These are
+      registered with Tailwind, so each one generates utilities.
+
+   A rebrand is then a handful of edits in layer 1 alone.
+
+   Namespace determines which utilities get built:
+     --color-*   ->  bg-*, text-*, border-*, ring-*, fill-*
+     --font-*    ->  font-*
+     --text-*    ->  text-*   (FONT SIZE — never a color)
+     --radius-*  ->  rounded-*
+     --shadow-*  ->  shadow-*
+     --spacing   ->  the base unit that scales p-4, gap-2, w-8, etc.
+
+   Every @theme token is also emitted as a plain custom property, so
+   `var(--color-primary)` still works in hand-written CSS.
+   ============================================================ */
+
+/* ---------- Layer 1: brand palette (private) ---------------- */
+:root {
+  --aj-teal-900: #02322c;
+  /* deep elegant teal-green (brand primary) */
+  --aj-teal-700: #0a4a41;
+  /* hover / press teal */
+  --aj-teal-100: #e2ece5;
+  /* tinted teal surface */
+
+  --aj-cream-50: #fcfdf8;
+  /* soft luminous off-white (brand paper) */
+  --aj-cream-100: #f5f7ea;
+  /* warmed cream panel */
+
+  --aj-lime-200: #ebf2be;
+  /* champagne-lime spark (logo mark color) */
+  --aj-lime-300: #dfe9a4;
+  /* pressed lime */
+
+  --aj-ink: #10201c;
+  /* near-black teal ink */
+  --aj-white: #ffffff;
+  --aj-gray-500: #5c6b62;
+  /* muted teal-gray text */
+
+  --aj-border: rgba(2, 50, 44, 0.16);
+  --aj-shadow-color: rgba(2, 50, 44, 0.14);
+
+  /* Reference value only — documents how the type scale was derived.
+     Not a Tailwind namespace, so it generates no utilities; it lives
+     here rather than in @theme to make that explicit. */
+  --aj-scale-ratio: 1.25;
+  /* major third */
+}
+
+/* @font-face rules live in ./fonts.css — this file declares tokens,
+   that one loads the assets they name. */
+
+/* ---------- Layer 2: semantic tokens (public API) ----------- */
+@theme {
+  /* --- Typography ------------------------------------------------
+     The families named here are loaded by ./fonts.css. If a name is
+     changed, change it there too or it silently falls back.
+
+     --font-* is the FAMILY namespace, --text-* is the SIZE namespace.
+     Text COLORS live under --color-* below and are used as
+     text-heading, text-foreground, text-muted, ...                 */
+  --font-display: 'Kolak', Georgia, serif;
+  /* logo-derived display face */
+  --font-body: 'Poppins', -apple-system, 'Segoe UI', sans-serif;
+  /* Tailwind derives the document's default font from --font-sans, so
+     point it at the body face or <body> keeps the system stack. */
+  --font-sans: var(--font-body);
+
+  /* --- Type scale -------------------------------------------------
+     Major third (1.25) from a 16px base. Figma values in comments.
+     rem, not px, so the sizes respect the reader's browser font-size
+     setting (see --aj-scale-ratio for the derivation).
+
+     Each size carries its own line-height and letter-spacing, so
+     `text-h1` sets all three. Override per-use with `text-h1/loose`. */
+  --text-caption: 0.8rem;
+  /* 12.8px — step -1  */
+  --text-caption--line-height: 1.5;
+  --text-caption--letter-spacing: 0.01em;
+
+  --text-body-md: 1rem;
+  /* 16px  — base      */
+  --text-body-md--line-height: 1.5;
+
+  --text-body-lg: 1.25rem;
+  /* 20px              */
+  --text-body-lg--line-height: 1.5;
+
+  --text-h3: 1.5625rem;
+  /* 25px              */
+  --text-h3--line-height: 1.3;
+
+  --text-h2: 1.953125rem;
+  /* 31.25px — step 3  */
+  --text-h2--line-height: 1.3;
+
+  --text-h1: 2.4375rem;
+  /* 39px              */
+  --text-h1--line-height: 1.15;
+  --text-h1--letter-spacing: -0.01em;
+
+  --text-display: 3.0625rem;
+  /* 49px              */
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.015em;
+
+  --text-hero: 3.8125rem;
+  /* 61px              */
+  --text-hero--line-height: 1.15;
+  --text-hero--letter-spacing: -0.02em;
+
+  /* --- Standalone line-height / tracking -------------------------
+     For overriding the bundled defaults above. Names avoid Tailwind's
+     built-ins (leading-tight, tracking-wide) so nothing is silently
+     redefined out from under someone. */
+  --leading-display: 1.15;
+  --leading-heading: 1.3;
+  --leading-body: 1.5;
+
+  --tracking-logo: 0.35em;
+  /* logo lockup only  */
+  --tracking-caps: 0.12em;
+  /* small-caps labels */
+
+  /* --- Shape ------------------------------------------------------- */
+  --radius-card: 0.75rem;
+  --radius-pill: 9999px;
+
+  /* --- Surfaces -> bg-surface, bg-surface-card, ... ---------------- */
+  --color-surface: var(--aj-cream-50);
+  /* page background   */
+  --color-surface-panel: var(--aj-cream-100);
+  /* sections, footers */
+  --color-surface-card: var(--aj-white);
+  /* product cards     */
+  --color-surface-tint: var(--aj-teal-100);
+  /* subtle highlight  */
+  --color-surface-inverse: var(--aj-teal-900);
+  /* dark bands, hero  */
+  --color-surface-accent: var(--aj-lime-200);
+  /* badges, spark     */
+
+  /* --- Content -> text-heading, text-foreground, ... --------------- */
+  --color-heading: var(--aj-teal-900);
+  --color-foreground: var(--aj-ink);
+  /* default body text */
+  --color-muted: var(--aj-gray-500);
+  /* captions, meta    */
+  --color-inverse: var(--aj-cream-50);
+  /* text on inverse   */
+  --color-on-accent: var(--aj-teal-900);
+  /* text on accent    */
+
+  /* --- Brand actions -> bg-primary, hover:bg-primary-hover -------- */
+  --color-primary: var(--aj-teal-900);
+  --color-primary-hover: var(--aj-teal-700);
+  --color-accent: var(--aj-lime-200);
+  --color-accent-hover: var(--aj-lime-300);
+
+  /* --- Lines & focus -> border-border, ring-ring ------------------- */
+  --color-border: var(--aj-border);
+  --color-ring: var(--aj-teal-700);
+
+  /* --- Elevation -> shadow-card, shadow-pop ----------------------- */
+  --shadow-card: 0 8px 24px var(--aj-shadow-color);
+  --shadow-pop: 0 16px 40px rgba(2, 50, 44, 0.2);
+}

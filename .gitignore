@@ -1,6 +1,7 @@
 venv/
 .env/
 .venv/
+node_modules/
 db.sqlite3
 media/
 staticfiles/

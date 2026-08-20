@@ -1,0 +1,83 @@
+/* ============================================================
+   Font loading — Angelique Jewels
+
+   The files live in public/fonts/, so Vite copies them verbatim and
+   serves them from the site root. Paths here are ROOT-ABSOLUTE
+   (/fonts/...), not relative: anything under public/ is never
+   resolved, hashed, or rewritten by the bundler.
+
+   Consequences of that choice:
+     + URLs are stable, so index.html can <link rel="preload"> them.
+     - No content hashing, so a changed file needs a new NAME to bust
+       caches (e.g. Poppins-Regular.2.ttf).
+     - A typo'd path fails silently at runtime instead of at build.
+
+   Family names below ('Kolak', 'Poppins') are arbitrary labels — they
+   only have to match the strings in --font-display / --font-body in
+   theme.css. They are not read from the font files themselves.
+   ============================================================ */
+
+/* --- Display face: Kolak (weight 400 only) ---------------------
+   No bold cut exists. font-synthesis is disabled where this face is
+   used (see index.css) so a stray `font-bold` renders visibly wrong
+   rather than shipping a smeared fake bold. */
+@font-face {
+  font-family: 'Kolak';
+  src: url('/fonts/kolak.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --- Body face: Poppins ----------------------------------------
+   Only the weights the design system actually uses are declared.
+   Browsers fetch each face lazily, so an unused declaration costs
+   nothing — but an undeclared weight gets synthesised, so keep this
+   list in sync with the weights the UI really applies. */
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
